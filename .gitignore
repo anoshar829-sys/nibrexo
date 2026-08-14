@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Runtime databases — never commit local account/session data.
+# The application creates/migrates these locally (see backend/README.md and OPERATIONS.md).
+backend/data/
+account/backend/data/
+
+# Local operations artifacts
+backend/backups/
+backend/restores/
