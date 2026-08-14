@@ -61,6 +61,23 @@ OWNER_SETUP_ATTEMPTS = {}
 # whose browser context refuses to persist that cookie. It stores token hashes only.
 OWNER_SETUP_ISSUED_TOKENS = {}
 
+CSP_POLICY = (
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "connect-src 'self'; "
+    "font-src 'self'; "
+    "form-action 'self'; "
+    "frame-src 'none'; "
+    "frame-ancestors 'self'; "
+    "img-src 'self' data: https:; "
+    "media-src 'self'; "
+    "object-src 'none'; "
+    "script-src 'self'; "
+    "style-src 'self'"
+)
+PERMISSIONS_POLICY = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+HSTS_MAX_AGE = "max-age=31536000"
+
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -722,7 +739,17 @@ def create_app(test_config=None):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = PERMISSIONS_POLICY
+        response.headers["Content-Security-Policy"] = CSP_POLICY
+        # HSTS is issued only for production deployments reached over externally
+        # terminated HTTPS. It is never sent for development HTTP.
+        if os.environ.get("NIBREXO_ENV") == "production" and (
+            request.is_secure
+            or request.headers.get("X-Forwarded-Proto", "").split(",", 1)[0].strip().lower() == "https"
+        ):
+            response.headers["Strict-Transport-Security"] = HSTS_MAX_AGE
         return response
+
 
     @app.get("/api/health")
     def health():

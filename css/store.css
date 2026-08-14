@@ -382,6 +382,14 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .js .store-reveal { opacity: 0; transform: translateY(18px); transition: opacity 440ms ease-out, transform 440ms ease-out; transition-delay: var(--delay,0ms); }
 .js .store-reveal.is-visible { opacity: 1; transform: translateY(0); }
 
+/* Stagger utilities — replace inline style attributes for CSP compatibility. */
+.d-0 { --delay: 0ms; }
+.d-80 { --delay: 80ms; }
+.d-160 { --delay: 160ms; }
+.d-240 { --delay: 240ms; }
+.d-320 { --delay: 320ms; }
+.d-400 { --delay: 400ms; }
+
 @media (max-width: 1080px) {
   .store-nav, .store-utility .store-icon-button { display: none; }
   .store-menu-toggle { display: inline-grid; }

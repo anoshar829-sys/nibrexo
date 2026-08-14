@@ -251,6 +251,14 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .js .business-reveal { opacity: 0; transform: translateY(18px); transition: opacity 440ms ease-out, transform 440ms ease-out; transition-delay: var(--delay,0ms); }
 .js .business-reveal.is-visible { opacity: 1; transform: translateY(0); }
 
+/* Stagger utilities — replace inline style attributes for CSP compatibility. */
+.d-0 { --delay: 0ms; }
+.d-80 { --delay: 80ms; }
+.d-90 { --delay: 90ms; }
+.d-160 { --delay: 160ms; }
+.d-180 { --delay: 180ms; }
+.d-240 { --delay: 240ms; }
+
 @media (max-width: 1080px) {
   .business-nav, .business-actions .cart-link { display: none; }
   .business-menu-toggle { display: inline-grid; }

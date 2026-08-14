@@ -2476,6 +2476,13 @@ svg {
   transition-delay: var(--reveal-delay, 0ms);
 }
 
+/* Stagger utilities — replace inline style attributes for CSP compatibility. */
+.rd-0 { --reveal-delay: 0ms; }
+.rd-80 { --reveal-delay: 80ms; }
+.rd-100 { --reveal-delay: 100ms; }
+.rd-160 { --reveal-delay: 160ms; }
+.rd-200 { --reveal-delay: 200ms; }
+
 .js .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
