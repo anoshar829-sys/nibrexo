@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FFFFFF" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/assets/nibrexo-primary-header.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/assets/nibrexo-primary-header.png" />
+    <meta name="description" content="Log in to view your purchase history." />
+    <meta property="og:title" content="My Orders" />
+    <meta property="og:description" content="Log in to view your purchase history." />
+    <meta name="twitter:title" content="My Orders" />
+    <meta name="twitter:description" content="Log in to view your purchase history." />
+    <title>My Orders — Nibrexo</title>
+    <link rel="icon" type="image/png" href="../assets/favicon.png" />
+    <link rel="stylesheet" href="../css/account.css" />
+  </head>
+  <body class="account-private" data-customer-page="orders">
+    <a class="skip-link" href="#main-content">Skip to my orders</a>
+    <div class="account-shell">
+    <aside class="account-sidebar" id="account-sidebar" aria-label="Customer navigation">
+      <a class="account-sidebar__brand" href="../index.html" aria-label="Nibrexo home"><img src="../assets/nibrexo-footer-dark.png" alt="Nibrexo" /></a>
+      <p class="account-sidebar__label">Customer Area</p>
+      <nav><a href="dashboard.html">Dashboard</a><a href="orders.html" aria-current="page">My Orders</a><a href="downloads.html">Downloads</a><a href="licenses.html">License Keys</a><a href="saved-items.html">Saved Items</a><a href="billing.html">Billing</a><a href="support.html">Support Tickets</a><a href="messages.html">Messages</a><a href="settings.html">Account Settings</a><a href="notifications.html">Notifications</a><a href="profile.html">Profile</a></nav>
+      <div class="account-sidebar__footer"><div class="account-sidebar__profile"><span class="account-sidebar__avatar" aria-hidden="true">N</span><span data-account-state>Guest mode</span></div><button class="account-sidebar__logout" type="button" data-account-logout disabled>Logout unavailable</button></div>
+    </aside>
+      <div class="account-main">
+        <header class="account-topbar"><div><button class="account-mobile-toggle" id="account-mobile-toggle" type="button" aria-expanded="false" aria-controls="account-sidebar" aria-label="Open account navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path></svg></button><span class="account-topbar__title">My Orders</span></div><div class="account-topbar__utility"><a class="account-topbar__link" href="profile.html">Profile</a><a class="account-topbar__link" href="notifications.html">Notifications</a><span class="account-topbar__state" data-account-state>Guest mode</span></div></header>
+        <main class="account-page" id="main-content"><div class="account-page__inner">
+          <section class="account-guard" data-guest-guard><p class="eyebrow"><span class="eyebrow-line"></span>Secure Customer Area</p><h1>My Orders</h1><p>Log in to view your purchase history.</p><div class="account-guard__actions"><a class="button button--primary" href="login.html">Log In</a><a class="button button--outline" href="register.html">Create Account</a></div></section>
+          <section class="customer-content" data-customer-state hidden><div class="customer-content__header"><div><p class="eyebrow"><span class="eyebrow-line"></span>Customer Account</p><h1>No orders yet</h1></div></div><section class="account-empty"><div class="account-empty__inner"><span class="account-empty__icon" aria-hidden="true">—</span><h2>No orders yet</h2><p>Orders appear here after an eligible purchase.</p><a class="button button--outline" href="../store/index.html">Explore Products</a></div></section></section>
+        </div></main>
+      </div>
+    </div>
+    <script src="../js/customer-contracts.js"></script>
+    <script src="../js/account-api.js"></script>
+    <script src="../js/account-state.js"></script>
+    <script src="../js/account.js"></script>
+  </body>
+</html>
