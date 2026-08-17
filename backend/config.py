@@ -2,7 +2,7 @@
 import json
 import os
 import re
-from pathlib import Path
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
 
@@ -24,20 +24,23 @@ def _valid_key_version(value):
     return bool(isinstance(value, str) and KEY_VERSION_RE.fullmatch(value.strip()))
 
 
-def _production_database_is_valid(require_existing=True):
-    """Validate only safe path properties; storage durability is an operator concern."""
-    raw_path = os.environ.get("NIBREXO_DB_PATH")
-    if not raw_path:
+def _valid_postgresql_url(value=None):
+    raw_url = str(value if value is not None else os.environ.get("NIBREXO_DATABASE_URL", "")).strip()
+    if not raw_url:
         return False
     try:
-        path = Path(raw_path).expanduser()
+        parsed = urlsplit(raw_url)
+        _ = parsed.port
     except (TypeError, ValueError):
         return False
-    if not path.is_absolute():
-        return False
-    if require_existing:
-        return path.is_file()
-    return True
+    return bool(
+        parsed.scheme in {"postgres", "postgresql"}
+        and parsed.hostname
+        and parsed.username
+        and parsed.password
+        and parsed.path
+        and parsed.path != "/"
+    )
 
 
 def license_key_configuration():
@@ -82,11 +85,14 @@ def provider_configuration():
 
 
 def readiness(require_existing_database=True):
+    # require_existing_database is retained for API compatibility; PostgreSQL existence is
+    # verified by migration status/health checks rather than filesystem inspection.
+    del require_existing_database
     production = os.environ.get("NIBREXO_ENV") == "production"
     secret = os.environ.get("FLASK_SECRET_KEY")
     license_configuration_state = license_key_configuration()
     required = {
-        "database_configuration": _production_database_is_valid(require_existing_database) if production else True,
+        "database_configuration": _valid_postgresql_url() if production else True,
         "application_secret": bool(secret and secret != DEVELOPMENT_SECRET and len(secret) >= 32),
         "secure_cookie": os.environ.get("NIBREXO_COOKIE_SECURE", "false").lower() == "true" if production else True,
         "license_encryption": license_configuration_state["active_key"],
@@ -102,8 +108,14 @@ def readiness(require_existing_database=True):
     }
 
 
+def validate_database_environment():
+    """Validate only what migration/database commands require."""
+    if os.environ.get("NIBREXO_ENV") == "production" and not _valid_postgresql_url():
+        raise RuntimeError("Required production database configuration is missing or invalid.")
+
+
 def validate_production_environment(*, require_existing_database=True):
-    """Fail closed in production without disclosing missing values or paths."""
+    """Fail closed in production without disclosing missing values or credentials."""
     if os.environ.get("NIBREXO_ENV") != "production":
         return
     readiness_state = readiness(require_existing_database=require_existing_database)

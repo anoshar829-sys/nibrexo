@@ -4,7 +4,6 @@ import json
 import os
 import re
 import secrets
-import sqlite3
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -17,8 +16,15 @@ from flask import Flask, jsonify, make_response, redirect, request, send_from_di
 from werkzeug.exceptions import HTTPException
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database import get_db
+from database import DatabaseError, IntegrityError, get_db
 from config import readiness, validate_production_environment
+from login_rate_limit import (
+    canonical_client_ip,
+    clear_login_failures,
+    is_login_rate_limited,
+    login_attempt_key,
+    record_login_failure,
+)
 from payments import PaymentUnavailable, get_payment_provider
 from storage import StorageUnavailable, get_storage_provider
 from license_vault import LicenseVaultUnavailable, get_license_vault
@@ -35,6 +41,9 @@ BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent
 COOKIE_NAME = "nibrexo_session"
 PASSWORD_MIN_LENGTH = 8
+# A non-secret placeholder keeps nonexistent-account password verification on the
+# same code path as a real account without exposing whether an email exists.
+DUMMY_PASSWORD_HASH = generate_password_hash("nibrexo-invalid-login-placeholder")
 ADMIN_ROLES = {"owner", "admin", "manager", "support", "editor"}
 CONTENT_ROLES = {"owner", "admin", "manager", "editor"}
 SUPPORT_ROLES = {"owner", "admin", "manager", "support"}
@@ -496,7 +505,10 @@ def serialize_product(row):
 
 def owner_setup_allowed():
     """Development-only bootstrap guard. It closes permanently after the first Owner exists."""
-    if os.environ.get("NIBREXO_ENV") == "production":
+    if (
+        os.environ.get("NIBREXO_ENV") == "production"
+        or os.environ.get("NIBREXO_API_ONLY", "false").lower() == "true"
+    ):
         return False
     with get_db() as db:
         return not db.execute("SELECT 1 FROM users WHERE role = 'owner' LIMIT 1").fetchone()
@@ -674,7 +686,7 @@ def create_development_owner(email, name, password, confirmation):
         raise ValueError("Passwords do not match.")
     timestamp = now_iso()
     with get_db() as db:
-        db.execute("BEGIN IMMEDIATE")
+        db.begin_write()
         if db.execute("SELECT 1 FROM users WHERE role = 'owner' LIMIT 1").fetchone():
             raise RuntimeError("Owner setup is no longer available.")
         if db.execute("SELECT 1 FROM users WHERE email = ?", (normalized_email,)).fetchone():
@@ -734,7 +746,7 @@ def create_app(test_config=None):
     @app.errorhandler(Exception)
     def controlled_unexpected_error(_error):
         # Never return exception text, paths, environment values, or provider details to clients.
-        if request.path.startswith("/api/"):
+        if request.path.startswith("/api/") or os.environ.get("NIBREXO_API_ONLY", "false").lower() == "true":
             return json_error("The service is temporarily unavailable.", 500)
         return send_from_directory(FRONTEND_DIR, "404.html"), 500
 
@@ -759,7 +771,7 @@ def create_app(test_config=None):
         try:
             with get_db() as db:
                 db.execute("SELECT 1").fetchone()
-        except sqlite3.Error:
+        except DatabaseError:
             return jsonify({"ok": False, "data": {"application": "healthy", "database": "unavailable"}}), 503
         return jsonify({"ok": True, "data": {"application": "healthy", "database": "ready"}})
 
@@ -844,7 +856,7 @@ def create_app(test_config=None):
                     (user["id"], name, email, generate_password_hash(password), "customer", "active", timestamp, timestamp),
                 )
                 db.commit()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             if form_submission:
                 return redirect("/account/register.html", code=303)
             return json_error("Unable to create account with these details.", 409)
@@ -861,12 +873,23 @@ def create_app(test_config=None):
         data = request.form if form_submission else payload()
         email = str(data.get("email", "")).strip().lower()
         password = str(data.get("password", ""))
+        attempt_key = login_attempt_key(email, canonical_client_ip(request))
         with get_db() as db:
+            db.begin_write()
+            if is_login_rate_limited(db, attempt_key):
+                db.commit()
+                return json_error("Too many login attempts. Try again later.", 429)
             user = db.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
-        if not user or user["status"] != "active" or not check_password_hash(user["password_hash"], password):
-            if form_submission:
-                return redirect("/account/login.html", code=303)
-            return json_error("Invalid email or password.", 401)
+            password_hash = user["password_hash"] if user else DUMMY_PASSWORD_HASH
+            password_valid = check_password_hash(password_hash, password)
+            if not user or user["status"] != "active" or not password_valid:
+                record_login_failure(db, attempt_key)
+                db.commit()
+                if form_submission:
+                    return redirect("/account/login.html", code=303)
+                return json_error("Invalid email or password.", 401)
+            clear_login_failures(db, attempt_key)
+            db.commit()
         if form_submission:
             destination = "/admin/index.html" if user["role"] in ADMIN_ROLES else "/account/dashboard.html"
             return create_session_response(user, status=303, redirect_to=destination)
@@ -1063,7 +1086,7 @@ def create_app(test_config=None):
                 db.execute("UPDATE users SET name = ?, email = ?, updated_at = ? WHERE id = ?", (name, email, now_iso(), user["id"]))
                 db.commit()
                 updated = db.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             return json_error("Unable to update profile with these details.", 409)
         return jsonify({"ok": True, "data": {"user": safe_user(updated)}})
 
@@ -1149,7 +1172,8 @@ def create_app(test_config=None):
             try:
                 db.execute("INSERT INTO saved_items (id, user_id, product_id, created_at) VALUES (?, ?, ?, ?)", (new_id("saved"), user["id"], product_id, now_iso()))
                 db.commit()
-            except sqlite3.IntegrityError:
+            except IntegrityError:
+                db.rollback()
                 return jsonify({"ok": True, "data": {"saved": True}})
         return jsonify({"ok": True, "data": {"saved": True}}), 201
 
@@ -1648,7 +1672,7 @@ def create_app(test_config=None):
                 db.execute("INSERT INTO categories (id,name,slug,description,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?)", (category_id, name, slug, str(data.get("description", "")).strip() or None, status, timestamp, timestamp))
                 log_activity(db, user["id"], "Category created", "categories", category_id)
                 db.commit()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             return json_error("A category with this slug already exists.", 409)
         return jsonify({"ok": True, "data": {"id": category_id}}), 201
 
@@ -1712,7 +1736,7 @@ def create_app(test_config=None):
                 db.execute("INSERT INTO services (id,name,slug,short_description,detailed_description,visual,deliverables,cta,category,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (service_id, name, slug, str(data.get("shortDescription", "")).strip() or None, str(data.get("detailedDescription", "")).strip() or None, None, str(data.get("deliverables", "")).strip() or None, str(data.get("cta", "")).strip() or None, str(data.get("category", "")).strip() or None, status, timestamp, timestamp))
                 log_activity(db, user["id"], "Service created", "services", service_id)
                 db.commit()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             return json_error("A service with this slug already exists.", 409)
         return jsonify({"ok": True, "data": {"id": service_id}}), 201
 
@@ -1775,7 +1799,7 @@ def create_app(test_config=None):
                 db.execute("INSERT INTO documentation_entries (id,title,slug,summary,content,category,display_order,seo_title,seo_description,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", (entry_id, title, slug, str(data.get("summary", "")).strip() or None, content, str(data.get("category", "")).strip() or None, data.get("displayOrder") or None, str(data.get("seoTitle", "")).strip() or None, str(data.get("seoDescription", "")).strip() or None, status, timestamp, timestamp))
                 log_activity(db, user["id"], "Documentation created", "documentation", entry_id)
                 db.commit()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             return json_error("Documentation with this slug already exists.", 409)
         return jsonify({"ok": True, "data": {"id": entry_id}}), 201
 
@@ -1828,7 +1852,7 @@ def create_app(test_config=None):
                 db.execute("INSERT INTO blog_posts (id,title,slug,excerpt,content,category,author_user_id,seo_title,seo_description,status,published_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", (post_id, title, slug, str(data.get("excerpt", "")).strip() or None, content, str(data.get("category", "")).strip() or None, user["id"], str(data.get("seoTitle", "")).strip() or None, str(data.get("seoDescription", "")).strip() or None, status, published_at, timestamp, timestamp))
                 log_activity(db, user["id"], "Blog post created", "blog", post_id)
                 db.commit()
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             return json_error("Post with this slug already exists.", 409)
         return jsonify({"ok": True, "data": {"id": post_id}}), 201
 
@@ -1998,11 +2022,16 @@ def create_app(test_config=None):
 
     @app.get("/")
     def root_index():
+        if os.environ.get("NIBREXO_API_ONLY", "false").lower() == "true":
+            return json_error("Not found.", 404)
         return send_from_directory(FRONTEND_DIR, "index.html")
 
     @app.get("/<path:requested_path>")
     def frontend_file(requested_path):
-        if requested_path.startswith("api/"):
+        if (
+            os.environ.get("NIBREXO_API_ONLY", "false").lower() == "true"
+            or requested_path.startswith("api/")
+        ):
             return json_error("Not found.", 404)
         forbidden_prefixes = ("backend/", ".")
         forbidden_suffixes = (".py", ".sql", ".db", ".env", ".md", ".txt")

@@ -4,12 +4,14 @@ This audit was checked against the active Flask URL map, adapter source, and tem
 
 **Frontend adapters audited:** `public-api.js`, `store-api.js`, `account-api.js`, `admin-api.js`, and `automation-api.js`.
 
+**Infrastructure status:** local regression tests use SQLite. Production is designed for the same Flask contracts on Vercel with Supabase PostgreSQL, but no live Supabase or Vercel verification is claimed.
+
 ## Auth API
 
 | Method / URL | Browser request | Auth / authorization | Success / empty | Controlled errors |
 |---|---|---|---|---|
 | `POST /api/auth/register` | JSON: `name`, `email`, `password` | Public; server always assigns `customer` | `201` user/session cookie | `422` invalid input; `409` duplicate email |
-| `POST /api/auth/login` | JSON: `email`, `password` | Public | `200` user/session cookie | `401` invalid/inactive credentials |
+| `POST /api/auth/login` | JSON: `email`, `password` | Public; database-backed limiter keyed by hashed normalized email + client IP | `200` user/session cookie and limiter cleared | `401` invalid/inactive credentials; `429` after five failures in 15 minutes |
 | `POST /api/auth/logout` | No body | Optional current session | `200` revokes/clears session | Safe no-op when no cookie |
 | `GET /api/auth/me` | No body | Required | `200` safe user object | `401` no valid session |
 | `POST /api/auth/forgot-password` | JSON: `email` | Public | `202` only after real email delivery is configured | `422` invalid email; currently `503` and explicitly states no email was sent |

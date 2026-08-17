@@ -26,3 +26,18 @@ Interpretation:
   was added for this.
 - A genuine top-level browser check remains a separate verification step for a
   later environment.
+
+## Phase 1 — Vercel + PostgreSQL reconstruction
+
+Recorded: 2026-08-15 (Asia/Karachi).
+
+```text
+Code/local SQLite verification: 79 canonical tests passed
+PostgreSQL schema/SQL compatibility: CODE-LEVEL ONLY
+Live Supabase migration: NOT RUN
+Live Vercel deployment: NOT RUN
+Real-domain authentication: NOT RUN
+Production readiness: NOT CLAIMED
+```
+
+The reconstructed implementation preserves database-backed opaque sessions and adds PostgreSQL support, a Vercel entry point, engine-aware migrations, and database-backed login throttling. Live Supabase and Vercel evidence remains mandatory.

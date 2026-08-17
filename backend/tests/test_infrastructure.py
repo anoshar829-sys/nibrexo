@@ -21,6 +21,8 @@ from migrations import MIGRATIONS_DIR, migration_status, run_migrations
 
 ENVIRONMENT_KEYS = (
     "NIBREXO_DB_PATH",
+    "NIBREXO_DATABASE_URL",
+    "NIBREXO_API_ONLY",
     "NIBREXO_ENV",
     "FLASK_SECRET_KEY",
     "NIBREXO_COOKIE_SECURE",
@@ -36,6 +38,8 @@ class InfrastructureTests(unittest.TestCase):
         self.original_environment = {key: os.environ.get(key) for key in ENVIRONMENT_KEYS}
         self.db_path = Path(self.temp.name) / "source.db"
         os.environ["NIBREXO_DB_PATH"] = str(self.db_path)
+        os.environ.pop("NIBREXO_DATABASE_URL", None)
+        os.environ.pop("NIBREXO_API_ONLY", None)
         os.environ.pop("NIBREXO_ENV", None)
         os.environ.pop("FLASK_SECRET_KEY", None)
         os.environ["NIBREXO_COOKIE_SECURE"] = "false"
@@ -52,10 +56,10 @@ class InfrastructureTests(unittest.TestCase):
                 os.environ[key] = value
         self.temp.cleanup()
 
-    def configure_production_environment(self, database_path=None):
+    def configure_production_environment(self):
         os.environ["NIBREXO_ENV"] = "production"
+        os.environ["NIBREXO_DATABASE_URL"] = "postgresql://nibrexo:secret@db.example.test:5432/nibrexo"
         os.environ["FLASK_SECRET_KEY"] = "a-real-production-secret-value-that-is-long-enough"
-        os.environ["NIBREXO_DB_PATH"] = str(database_path or self.db_path)
         os.environ["NIBREXO_COOKIE_SECURE"] = "true"
         os.environ["LICENSE_ENCRYPTION_KEY"] = Fernet.generate_key().decode("utf-8")
         os.environ["LICENSE_ENCRYPTION_KEY_VERSION"] = "audit-v1"
@@ -97,16 +101,18 @@ class InfrastructureTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             validate_production_environment()
 
-    def test_production_startup_refuses_missing_database_without_recreating_it(self):
+    def test_production_startup_refuses_sqlite_fallback_without_creating_it(self):
         missing_database = Path(self.temp.name) / "missing" / "nibrexo.db"
-        self.configure_production_environment(missing_database)
+        os.environ["NIBREXO_ENV"] = "production"
+        os.environ["NIBREXO_DB_PATH"] = str(missing_database)
+        os.environ.pop("NIBREXO_DATABASE_URL", None)
         with self.assertRaises(RuntimeError):
             create_app()
         self.assertFalse(missing_database.exists())
 
-    def test_production_migration_command_creates_configured_database_before_wsgi_startup(self):
-        production_database = Path(self.temp.name) / "production-volume" / "nibrexo.db"
-        self.configure_production_environment(production_database)
+    def test_local_migration_command_creates_sqlite_and_production_requires_url(self):
+        local_database = Path(self.temp.name) / "local" / "nibrexo.db"
+        os.environ["NIBREXO_DB_PATH"] = str(local_database)
         result = subprocess.run(
             [sys.executable, "backend/manage.py", "migrate"],
             cwd=PROJECT_ROOT,
@@ -116,10 +122,22 @@ class InfrastructureTests(unittest.TestCase):
             timeout=20,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(production_database.is_file())
+        self.assertTrue(local_database.is_file())
         self.assertIn("Migrations applied.", result.stdout)
-        self.assertTrue(all(item["applied"] for item in migration_status()))
-        self.assertEqual(create_app().test_client().get("/api/health").status_code, 200)
+
+        production_environment = os.environ.copy()
+        production_environment["NIBREXO_ENV"] = "production"
+        production_environment.pop("NIBREXO_DATABASE_URL", None)
+        rejected = subprocess.run(
+            [sys.executable, "backend/manage.py", "migrate"],
+            cwd=PROJECT_ROOT,
+            env=production_environment,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("production database configuration", rejected.stderr)
 
     def test_forward_migration_preserves_existing_data_and_starts_app_and_worker(self):
         legacy_path = Path(self.temp.name) / "legacy.db"
@@ -165,33 +183,14 @@ class InfrastructureTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("'processed': True", result.stdout)
 
-    def test_wsgi_entrypoint_loads_in_production_mode_without_development_server(self):
-        self.configure_production_environment()
+    def test_legacy_wsgi_entrypoint_fails_closed_without_production_configuration(self):
         environment = os.environ.copy()
-        command = (
-            "from backend.wsgi import app\n"
-            "from werkzeug.test import Client\n"
-            "from werkzeug.wrappers import Response\n"
-            "response = Client(app, Response).get('/api/health')\n"
-            "print(response.status_code)\n"
-        )
-        result = subprocess.run(
-            [sys.executable, "-c", command],
-            cwd=PROJECT_ROOT,
-            env=environment,
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "200")
-
-        missing_environment = environment.copy()
-        missing_environment.pop("NIBREXO_ENV", None)
+        environment.pop("NIBREXO_ENV", None)
+        environment.pop("NIBREXO_DATABASE_URL", None)
         rejected = subprocess.run(
             [sys.executable, "-c", "from backend.wsgi import app"],
             cwd=PROJECT_ROOT,
-            env=missing_environment,
+            env=environment,
             capture_output=True,
             text=True,
             timeout=20,
@@ -200,8 +199,8 @@ class InfrastructureTests(unittest.TestCase):
         self.assertIn("NIBREXO_ENV=production", rejected.stderr)
 
     def test_production_cookie_and_controlled_api_error_behavior(self):
-        self.configure_production_environment()
-        production_app = create_app()
+        os.environ["NIBREXO_COOKIE_SECURE"] = "true"
+        production_app = create_app({"TESTING": True, "SECRET_KEY": "test-secret"})
         production_client = production_app.test_client()
         registration = production_client.post("/api/auth/register", json={"name": "Production Test", "email": "production-test@example.com", "password": "password123"})
         self.assertEqual(registration.status_code, 201)

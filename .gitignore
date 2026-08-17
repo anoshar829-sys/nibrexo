@@ -10,3 +10,10 @@ account/backend/data/
 # Local operations artifacts
 backend/backups/
 backend/restores/
+
+# Local configuration and Vercel-generated output
+.env
+.env.*
+!.env.example
+.vercel/
+public/

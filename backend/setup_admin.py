@@ -1,4 +1,4 @@
-"""Secure local/ops-only first-admin setup. Never expose this as a public route."""
+"""Secure operator-only first-admin setup. Never expose this as a production route."""
 import argparse
 import getpass
 import os
@@ -8,7 +8,9 @@ import sys
 from werkzeug.security import generate_password_hash
 
 from app import new_id, now_iso
-from database import DEFAULT_DB_PATH, database_path, get_db, init_db
+from config import validate_database_environment
+from database import database_engine, get_db, init_db, production_environment
+from migrations import migration_status
 
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
@@ -31,9 +33,10 @@ def founder_values_from_environment():
 
 
 def provision_founder_from_environment():
-    """Provision the one Founder owner only from process/session secrets."""
-    if database_path().resolve() != DEFAULT_DB_PATH.resolve():
-        raise RuntimeError("Founder provisioning must target backend/data/nibrexo.db.")
+    """Provision one Founder from process-injected secrets against the selected database."""
+    if production_environment() and database_engine() != "postgresql":
+        raise RuntimeError("Production Founder provisioning requires PostgreSQL configuration.")
+    validate_database_environment()
     email, name, password = founder_values_from_environment()
     return create_operator(email, name, password, "owner")
 
@@ -55,13 +58,27 @@ def validate_password(password, confirmation):
         raise ValueError("Passwords do not match.")
 
 
+def _prepare_database_for_provisioning():
+    if database_engine() == "sqlite":
+        init_db()
+        return
+    validate_database_environment()
+    pending = [item["version"] for item in migration_status() if not item["applied"]]
+    if pending:
+        raise RuntimeError("Founder provisioning requires all database migrations to be applied first.")
+
+
 def create_operator(email, name, password, role="owner"):
-    """Create one local operator without exposing or returning password material."""
+    """Create one operator without exposing or returning password material."""
     email, name = validate_identity(email, name)
     validate_password(password, password)
-    init_db()
+    _prepare_database_for_provisioning()
     timestamp = now_iso()
     with get_db() as db:
+        db.begin_write()
+        if db.engine == "postgresql":
+            # Serialize this one-time check/insert without requiring a permanent schema lock.
+            db.execute("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE")
         if db.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
             raise ValueError("An account with this email already exists.")
         if role == "owner" and db.execute("SELECT 1 FROM users WHERE role = 'owner' LIMIT 1").fetchone():

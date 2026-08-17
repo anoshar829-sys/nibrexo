@@ -7,7 +7,12 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from database import database_path
+from database import database_engine, database_path
+
+
+def require_sqlite_backup_mode():
+    if database_engine() != "sqlite":
+        raise RuntimeError("The built-in backup helper supports local SQLite databases only.")
 
 
 def _open_existing_read_only_database(path):
@@ -18,6 +23,7 @@ def _open_existing_read_only_database(path):
 
 
 def create_backup(destination_dir):
+    require_sqlite_backup_mode()
     source_path = database_path()
     destination = Path(destination_dir)
     destination.mkdir(parents=True, exist_ok=True)
@@ -36,6 +42,7 @@ def create_backup(destination_dir):
 
 
 def restore_to_test_database(backup_path, target_path):
+    require_sqlite_backup_mode()
     source = Path(backup_path).expanduser()
     target = Path(target_path).expanduser()
     active_database = database_path().expanduser().resolve()

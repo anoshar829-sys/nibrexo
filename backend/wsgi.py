@@ -1,7 +1,7 @@
-"""Production WSGI entry point.
+"""Legacy WSGI compatibility entry point; not the production deployment target.
 
-Run database migrations before a WSGI server imports this module. This module does not
-start Flask's development server and does not run migrations automatically.
+Production is deployed through api/index.py on Vercel. This module never starts
+Flask's development server or runs migrations.
 """
 from pathlib import Path
 import os

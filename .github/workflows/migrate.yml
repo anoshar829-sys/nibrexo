@@ -1,0 +1,80 @@
+name: Migrate production database
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type MIGRATE_PRODUCTION to run migrations
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nibrexo-production-database-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NIBREXO_ENV: production
+    steps:
+      - name: Confirm production migration
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          if [ "$CONFIRMATION" != "MIGRATE_PRODUCTION" ]; then
+            echo "Production migration confirmation did not match."
+            exit 1
+          fi
+
+      - name: Enforce protected production branch
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Production migrations may run only from the protected main branch."
+            exit 1
+          fi
+
+      - name: Validate database secret
+        shell: bash
+        env:
+          NIBREXO_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          if [ -z "$NIBREXO_DATABASE_URL" ]; then
+            echo "SUPABASE_DATABASE_URL is not configured."
+            exit 1
+          fi
+
+      - name: Check out protected production branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Identify production commit
+        run: echo "Migrating production commit $(git rev-parse HEAD)"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install migration dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Apply migrations
+        env:
+          NIBREXO_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: python backend/manage.py migrate
+
+      - name: Verify migration status
+        env:
+          NIBREXO_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: python backend/manage.py migration-status

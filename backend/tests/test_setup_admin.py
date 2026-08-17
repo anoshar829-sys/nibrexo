@@ -51,7 +51,7 @@ class SetupAdminTests(unittest.TestCase):
             "NIBREXO_FOUNDER_NAME": "Founder Environment",
             "NIBREXO_FOUNDER_PASSWORD": self.password,
         }
-        with patch.dict(os.environ, environment, clear=False), patch("setup_admin.database_path", return_value=self.db_path), patch("setup_admin.DEFAULT_DB_PATH", self.db_path):
+        with patch.dict(os.environ, environment, clear=False):
             result = provision_founder_from_environment()
         self.assertEqual(result["role"], "owner")
         with get_db() as db:
@@ -65,18 +65,18 @@ class SetupAdminTests(unittest.TestCase):
         self.assertEqual(owners, 1)
         self.assertEqual(teams, 1)
 
-    def test_from_environment_requires_session_secrets_and_current_database(self):
+    def test_from_environment_requires_secrets_and_production_postgresql(self):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "Founder provisioning secrets are unavailable"):
                 provision_founder_from_environment()
         environment = {
+            "NIBREXO_ENV": "production",
             "NIBREXO_FOUNDER_EMAIL": "founder-env@example.test",
             "NIBREXO_FOUNDER_NAME": "Founder Environment",
             "NIBREXO_FOUNDER_PASSWORD": self.password,
         }
-        other_database = Path(self.temp.name) / "other.db"
-        with patch.dict(os.environ, environment, clear=False), patch("setup_admin.database_path", return_value=other_database), patch("setup_admin.DEFAULT_DB_PATH", self.db_path):
-            with self.assertRaisesRegex(RuntimeError, "must target backend/data/nibrexo.db"):
+        with patch.dict(os.environ, environment, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "requires PostgreSQL"):
                 provision_founder_from_environment()
 
 

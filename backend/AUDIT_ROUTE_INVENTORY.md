@@ -2,6 +2,8 @@
 
 Verified against the active Flask URL map and static files. Static private pages are browser shells; server-side protection is enforced by their API calls.
 
+Local Flask continues to serve these files directly. In production, Vercel serves the same allowlisted paths while `NIBREXO_API_ONLY=true` limits the Flask Function to API responses. The Vercel mapping is code-tested but not live-deployed.
+
 ## Public static routes
 
 | Route | Purpose | Status | Backend connection | Authentication | Authorization |
@@ -103,7 +105,7 @@ Verified against the active Flask URL map and static files. Static private pages
 | Methods | Route | Purpose | Status | Authentication | Authorization |
 |---|---|---|---|---|---|
 | POST | `/api/auth/forgot-password` | forgot password | Controlled NOT_CONFIGURED when email absent | None | Public |
-| POST | `/api/auth/login` | login | Active auth boundary | None | Public |
+| POST | `/api/auth/login` | login | Active auth boundary; database limiter returns 429 after five failures in 15 minutes | None | Public |
 | POST | `/api/auth/logout` | logout | Active auth boundary | None | Public |
 | GET | `/api/auth/me` | me | Active auth boundary | None | Public |
 | POST | `/api/auth/register` | register | Active auth boundary | None | Public |

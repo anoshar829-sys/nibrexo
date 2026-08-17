@@ -1,9 +1,8 @@
-PRAGMA foreign_keys = ON;
-
+-- PostgreSQL initial schema. Application timestamps and JSON remain TEXT for API compatibility.
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  email TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('customer','admin','manager','support','editor','owner')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','suspended')),
@@ -47,7 +46,7 @@ CREATE TABLE IF NOT EXISTS products (
   slug TEXT NOT NULL UNIQUE,
   short_description TEXT,
   description TEXT,
-  price_cents INTEGER,
+  price_cents BIGINT,
   currency TEXT,
   category_id TEXT,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
@@ -66,7 +65,7 @@ CREATE TABLE IF NOT EXISTS product_files (
   product_id TEXT NOT NULL,
   file_name TEXT NOT NULL,
   file_type TEXT,
-  size_bytes INTEGER,
+  size_bytes BIGINT,
   version TEXT,
   storage_key TEXT,
   status TEXT NOT NULL DEFAULT 'unavailable' CHECK (status IN ('unavailable','available','archived')),
@@ -87,6 +86,19 @@ CREATE TABLE IF NOT EXISTS services (
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media (
+  id TEXT PRIMARY KEY,
+  file_name TEXT NOT NULL,
+  media_type TEXT NOT NULL CHECK (media_type IN ('image','video','document','other')),
+  storage_key TEXT,
+  dimensions TEXT,
+  size_bytes BIGINT,
+  usage_reference TEXT,
+  visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('public','private')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','available','archived')),
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS documentation_entries (
@@ -129,9 +141,9 @@ CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
   reference TEXT NOT NULL UNIQUE,
   user_id TEXT NOT NULL,
-  subtotal_cents INTEGER,
-  discount_cents INTEGER NOT NULL DEFAULT 0,
-  total_cents INTEGER,
+  subtotal_cents BIGINT,
+  discount_cents BIGINT NOT NULL DEFAULT 0,
+  total_cents BIGINT,
   currency TEXT,
   payment_reference TEXT,
   checkout_idempotency_key TEXT UNIQUE,
@@ -148,8 +160,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_id TEXT NOT NULL,
   product_title_snapshot TEXT,
   quantity INTEGER NOT NULL DEFAULT 1,
-  unit_price_cents INTEGER,
-  line_subtotal_cents INTEGER,
+  unit_price_cents BIGINT,
+  line_subtotal_cents BIGINT,
   currency TEXT,
   created_at TEXT NOT NULL,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -203,7 +215,7 @@ CREATE TABLE IF NOT EXISTS billing_records (
   user_id TEXT NOT NULL,
   order_id TEXT,
   provider_reference TEXT,
-  amount_cents INTEGER,
+  amount_cents BIGINT,
   currency TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','refunded')),
   created_at TEXT NOT NULL,
@@ -298,26 +310,13 @@ CREATE TABLE IF NOT EXISTS coupons (
   id TEXT PRIMARY KEY,
   code TEXT NOT NULL UNIQUE,
   discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage','fixed_amount')),
-  discount_value INTEGER NOT NULL,
+  discount_value BIGINT NOT NULL,
   start_at TEXT,
   end_at TEXT,
-  usage_limit INTEGER,
+  usage_limit BIGINT,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','active','expired','disabled')),
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS media (
-  id TEXT PRIMARY KEY,
-  file_name TEXT NOT NULL,
-  media_type TEXT NOT NULL CHECK (media_type IN ('image','video','document','other')),
-  storage_key TEXT,
-  dimensions TEXT,
-  size_bytes INTEGER,
-  usage_reference TEXT,
-  visibility TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('public','private')),
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','available','archived')),
-  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS team_members (
@@ -375,7 +374,7 @@ CREATE TABLE IF NOT EXISTS form_submissions (
 
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   id TEXT PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  email TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','subscribed','unsubscribed')),
   created_at TEXT NOT NULL
 );
@@ -420,11 +419,6 @@ CREATE TABLE IF NOT EXISTS workflow_executions (
   execution_key TEXT NOT NULL UNIQUE,
   status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','running','completed','failed','blocked','cancelled')),
   error_summary TEXT,
-  attempt_count INTEGER NOT NULL DEFAULT 0,
-  last_attempt_at TEXT,
-  next_retry_at TEXT,
-  locked_at TEXT,
-  lock_token TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE,
@@ -454,23 +448,8 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS site_settings (
-  setting_key TEXT PRIMARY KEY,
-  value_json TEXT NOT NULL,
-  updated_by_user_id TEXT,
-  updated_at TEXT NOT NULL,
-  FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS login_attempts (
-  key_hash TEXT PRIMARY KEY,
-  failure_count INTEGER NOT NULL DEFAULT 0 CHECK (failure_count >= 0),
-  window_started_at TEXT NOT NULL,
-  last_failed_at TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_site_settings_updated_by ON site_settings(updated_by_user_id);
-CREATE INDEX IF NOT EXISTS idx_login_attempts_last_failed_at ON login_attempts(last_failed_at);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users (LOWER(email));
+CREATE UNIQUE INDEX IF NOT EXISTS idx_newsletter_subscribers_email_nocase ON newsletter_subscribers (LOWER(email));
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
