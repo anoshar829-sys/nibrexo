@@ -40,11 +40,21 @@ class VercelArchitectureTests(unittest.TestCase):
                 os.environ[key] = value
         self.temp.cleanup()
 
-    def test_root_requirements_delegate_to_authoritative_backend_manifest(self):
+    def test_root_requirements_mirror_canonical_backend_manifest(self):
         root_requirements = (PROJECT_ROOT / "requirements.txt").read_text()
         backend_requirements = (BACKEND_DIR / "requirements.txt").read_text()
-        self.assertIn("-r backend/requirements.txt", root_requirements)
-        self.assertIn("psycopg[binary]", backend_requirements)
+        # The root manifest must remain a flat, Vercel-compatible mirror:
+        # Vercel's requirements parser does not support recursive "-r" includes.
+        self.assertNotIn("-r ", root_requirements)
+        for expected_line in (
+            "Flask>=3.1,<4.0",
+            "cryptography>=50,<51",
+            "psycopg[binary]>=3.2,<4.0",
+        ):
+            self.assertIn(expected_line, root_requirements)
+            self.assertIn(expected_line, backend_requirements)
+        # backend/requirements.txt stays canonical; root stays synchronized.
+        self.assertEqual(root_requirements, backend_requirements)
         self.assertNotIn("gunicorn", backend_requirements.lower())
 
     def test_vercel_configuration_routes_api_without_shadowing_static_output(self):
