@@ -1,19 +1,26 @@
-# Python
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Python (legacy reference runtime)
 __pycache__/
 *.pyc
 
 # Runtime databases — never commit local account/session data.
-# The application creates/migrates these locally (see backend/README.md and OPERATIONS.md).
-backend/data/
-account/backend/data/
+legacy/backend/data/
+legacy/account/backend/data/
 
 # Local operations artifacts
-backend/backups/
-backend/restores/
+legacy/backend/backups/
+legacy/backend/restores/
 
-# Local configuration and Vercel-generated output
+# Environment and local tooling
 .env
 .env.*
 !.env.example
 .vercel/
-public/
+*.log
+.DS_Store

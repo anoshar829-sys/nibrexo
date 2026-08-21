@@ -1,37 +1,73 @@
 # Nibrexo
 
-Nibrexo is a visual-first digital product platform with customer accounts, an Admin/CMS interface, commerce foundations, licensing, and server-side authorization.
+Nibrexo is a visual-first digital product platform. This repository now uses a Next.js foundation so later work can add authentication, products, orders, licensing, downloads, customer accounts, and admin tools.
 
 ## Architecture
 
-Production target:
-
 ```text
-Browser → Vercel static frontend → Flask Vercel Function → Supabase PostgreSQL
+Browser → Vercel / Next.js (App Router) → Supabase PostgreSQL + Auth
 ```
 
-Vercel serves the existing HTML, CSS, JavaScript, and approved assets. Same-origin `/api/*` requests are rewritten to `api/index.py`, which exports the existing Flask application. Supabase supplies PostgreSQL only; browser code never connects directly to the database.
+The previous Flask/Python serverless runtime is **not** used. It lives under `legacy/` as reference only and is not a Vercel entrypoint.
 
-Local development and the fast regression suite continue to use SQLite.
+## Phase 1 — Foundation
+
+This phase includes:
+
+- Next.js App Router with TypeScript
+- Homepage using the established Nibrexo visual language
+- Reusable layout and homepage components
+- Supabase client helpers (no business schema yet)
+- `GET /api/health` — application health, no database dependency
+- `GET /api/health/db` — separate Supabase connectivity check
+- Security headers and environment-variable-based configuration
+
+It does **not** include login, checkout, products, licensing, or admin features.
 
 ## Local development
 
 ```bash
-python -m pip install -r requirements.txt
-python backend/manage.py migrate
-python backend/setup_admin.py --interactive --role owner
-python backend/app.py
+cp .env.example .env.local
+npm install
+npm run dev
 ```
 
-`backend/requirements.txt` is the authoritative dependency list. Root `requirements.txt` delegates to it so Vercel and local development install the same versions.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Production status
+Required environment placeholders (no secrets in source control):
 
-Phase 1 contains the Vercel entry point, dual SQLite/PostgreSQL database layer, PostgreSQL schema, migrations, database-backed login throttling, and a manual GitHub migration workflow. It has not been connected to Supabase or deployed to Vercel.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-Do not treat local tests as live deployment verification. See:
+Without those values the site and `/api/health` still run. `/api/health/db` returns `503` with `"database": "unconfigured"` until Supabase credentials are supplied locally.
 
-- [`backend/README.md`](backend/README.md)
-- [`backend/DEPLOYMENT.md`](backend/DEPLOYMENT.md)
-- [`backend/OPERATIONS.md`](backend/OPERATIONS.md)
-- [`SUPABASE_MIGRATION_AUDIT.md`](SUPABASE_MIGRATION_AUDIT.md)
+## Scripts
+
+```bash
+npm install     # install dependencies
+npm run dev     # development server
+npm run build   # production build
+npm start       # production server (after build)
+```
+
+## Verification
+
+| Check | Expected |
+|---|---|
+| `GET /` | Homepage renders |
+| `GET /api/health` | `{ "ok": true, "application": "nibrexo" }` |
+| `GET /api/health/db` | `200` when Supabase is configured; `503` when it is not |
+
+## Deployment
+
+Deploy the Next.js app directly to Vercel. The project root has `package.json` and `next.config.ts` only — no `requirements.txt`, `.python-version`, or Python `/api` function.
+
+Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the Vercel project environment.
+
+## Visual reference reused
+
+- Logo and brand marks in `assets/` (copied to `public/assets/`)
+- Color tokens, type hierarchy, and layout language from `css/styles.css`
+- Homepage copy and structural sections from `index.html`
