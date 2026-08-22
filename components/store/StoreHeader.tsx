@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AccountIcon, CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
+import { isNavActive } from "@/lib/nav";
 import { routes } from "@/lib/site";
 
 const NAV = [
@@ -18,7 +19,6 @@ const NAV = [
 export function StoreHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const productsActive = pathname === routes.store;
   const cartActive = pathname === routes.cart;
 
   useEffect(() => {
@@ -46,16 +46,19 @@ export function StoreHeader() {
           <Image src="/assets/nibrexo-primary-header.png" alt="Nibrexo" width={151} height={40} priority />
         </Link>
         <nav className="store-nav" aria-label="Primary navigation">
-          {NAV.map((item) => (
-            <Link
-              key={item.label}
-              className={item.href === routes.store && productsActive ? "is-active" : undefined}
-              aria-current={item.href === routes.store && productsActive ? "page" : undefined}
-              href={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {NAV.map((item) => {
+            const active = isNavActive(pathname, item.href);
+            return (
+              <Link
+                key={item.label}
+                className={active ? "is-active" : undefined}
+                aria-current={active ? "page" : undefined}
+                href={item.href}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="store-utility">
           <Link className="store-icon-button" href={routes.login} aria-label="Account">
@@ -87,22 +90,22 @@ export function StoreHeader() {
       </div>
       <div className="store-menu" id="store-menu" aria-hidden={!menuOpen}>
         <nav aria-label="Mobile navigation">
-          <Link href={routes.store} onClick={closeMenu}>
+          <Link href={routes.store} aria-current={isNavActive(pathname, routes.store) ? "page" : undefined} onClick={closeMenu}>
             Products <span>01</span>
           </Link>
-          <Link href={routes.services} onClick={closeMenu}>
+          <Link href={routes.services} aria-current={isNavActive(pathname, routes.services) ? "page" : undefined} onClick={closeMenu}>
             Services <span>02</span>
           </Link>
-          <Link href={routes.resources} onClick={closeMenu}>
+          <Link href={routes.resources} aria-current={isNavActive(pathname, routes.resources) ? "page" : undefined} onClick={closeMenu}>
             Resources <span>03</span>
           </Link>
-          <Link href={routes.about} onClick={closeMenu}>
+          <Link href={routes.about} aria-current={isNavActive(pathname, routes.about) ? "page" : undefined} onClick={closeMenu}>
             About <span>04</span>
           </Link>
-          <Link href={routes.legal} onClick={closeMenu}>
+          <Link href={routes.legal} aria-current={isNavActive(pathname, routes.legal) ? "page" : undefined} onClick={closeMenu}>
             Legal <span>05</span>
           </Link>
-          <Link href={routes.cart} onClick={closeMenu}>
+          <Link href={routes.cart} aria-current={cartActive ? "page" : undefined} onClick={closeMenu}>
             Cart <span>06</span>
           </Link>
         </nav>

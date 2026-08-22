@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import "@/styles/globals.css";
 
 export const dynamic = "force-dynamic";
 

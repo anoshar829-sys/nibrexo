@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AccountIcon, CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
+import { isNavActive } from "@/lib/nav";
 import { routes } from "@/lib/site";
 
 const NAV = [
@@ -45,7 +46,7 @@ export function BusinessHeader() {
         </Link>
         <nav className="business-nav" aria-label="Primary navigation">
           {NAV.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isNavActive(pathname, item.href);
             return (
               <Link
                 key={item.label}
@@ -80,25 +81,25 @@ export function BusinessHeader() {
       </div>
       <div className="business-menu" id="business-menu" aria-hidden={!menuOpen}>
         <nav aria-label="Mobile navigation">
-          <Link href={routes.store} onClick={closeMenu}>
+          <Link href={routes.store} aria-current={isNavActive(pathname, routes.store) ? "page" : undefined} onClick={closeMenu}>
             Products <span>01</span>
           </Link>
-          <Link href={routes.services} onClick={closeMenu}>
+          <Link href={routes.services} aria-current={isNavActive(pathname, routes.services) ? "page" : undefined} onClick={closeMenu}>
             Services <span>02</span>
           </Link>
-          <Link href={routes.resources} onClick={closeMenu}>
+          <Link href={routes.resources} aria-current={isNavActive(pathname, routes.resources) ? "page" : undefined} onClick={closeMenu}>
             Resources <span>03</span>
           </Link>
-          <Link href={routes.about} onClick={closeMenu}>
+          <Link href={routes.about} aria-current={isNavActive(pathname, routes.about) ? "page" : undefined} onClick={closeMenu}>
             About <span>04</span>
           </Link>
-          <Link href={routes.legal} onClick={closeMenu}>
+          <Link href={routes.legal} aria-current={isNavActive(pathname, routes.legal) ? "page" : undefined} onClick={closeMenu}>
             Legal <span>05</span>
           </Link>
-          <Link href={routes.login} onClick={closeMenu}>
+          <Link href={routes.login} aria-current={isNavActive(pathname, routes.login) ? "page" : undefined} onClick={closeMenu}>
             Account <span>06</span>
           </Link>
-          <Link href={routes.cart} onClick={closeMenu}>
+          <Link href={routes.cart} aria-current={isNavActive(pathname, routes.cart) ? "page" : undefined} onClick={closeMenu}>
             Cart <span>07</span>
           </Link>
         </nav>
