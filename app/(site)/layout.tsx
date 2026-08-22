@@ -1,6 +1,6 @@
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { routes } from "@/lib/site";
 import "@/styles/globals.css";
 
@@ -9,14 +9,14 @@ export default async function SiteLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await getCurrentUser();
+  const profile = await getCurrentProfile();
 
   return (
     <>
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <Header accountHref={user ? routes.account : routes.login} signedIn={Boolean(user)} />
+      <Header accountHref={profile ? routes.account : routes.login} signedIn={Boolean(profile)} profile={profile ?? undefined} />
       {children}
       <Footer />
     </>

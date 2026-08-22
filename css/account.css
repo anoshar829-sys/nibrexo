@@ -224,3 +224,13 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .account-auth-footer .footer-social-link:hover { border-color:var(--primary); color:var(--white); background:var(--primary); }
 .account-auth-footer .footer-social-link:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
 .account-auth-footer .footer-social-link svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.profile-form { margin-top: 28px; }
+.avatar-picker { margin: 24px 0 0; padding: 0; border: 0; }
+.avatar-picker legend { margin-bottom: 10px; }
+.avatar-picker__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.avatar-option { display: grid; place-items: center; padding: 5px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
+.avatar-option:has(input:checked) { border-color: var(--primary); background: #eff6ff; }
+.avatar-option input { position: absolute; opacity: 0; }
+.avatar-option img { width: 100%; max-width: 64px; height: auto; border-radius: 50%; }
+.profile-form > .button { width: 100%; margin-top: 24px; }
+@media (max-width: 420px) { .account-menu__name { display: none; } .avatar-picker__grid { gap: 5px; } }

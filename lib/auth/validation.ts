@@ -1,1 +1,1 @@
-export { signupUserMetadata, validateSignInInput, validateSignUpInput, type FieldValidation } from "./policy";
+export { signupUserMetadata, validateDisplayName, validateSignInInput, validateSignUpInput, type FieldValidation } from "./policy";

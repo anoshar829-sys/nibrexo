@@ -1,19 +1,22 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { signOut } from "@/app/account/actions";
 import { AccountIcon, ChevronDownIcon } from "@/components/ui/Icons";
+import { avatarSrc } from "@/lib/auth/avatars";
 import { routes } from "@/lib/site";
 import "@/styles/account-menu.css";
 
 type AccountMenuProps = {
   signedIn: boolean;
   loggedOutClassName: string;
+  profile?: { displayName: string; avatarId: Parameters<typeof avatarSrc>[0] };
 };
 
-export function AccountMenu({ signedIn, loggedOutClassName }: AccountMenuProps) {
+export function AccountMenu({ signedIn, loggedOutClassName, profile }: AccountMenuProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -67,8 +70,11 @@ export function AccountMenu({ signedIn, loggedOutClassName }: AccountMenuProps) 
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="account-menu__avatar">
-          <AccountIcon />
+        <span className="account-menu__identity">
+          {profile ? <span className="account-menu__name">{profile.displayName}</span> : null}
+          <span className="account-menu__avatar">
+          {profile ? <Image src={avatarSrc(profile.avatarId)} alt="" width={28} height={28} /> : <AccountIcon />}
+        </span>
         </span>
         <span className="account-menu__chevron">
           <ChevronDownIcon />

@@ -7,6 +7,7 @@ import {
   publicAuthError,
   roleFromProfile,
   signupUserMetadata,
+  validateDisplayName,
   validateSignInInput,
   validateSignUpInput,
   type AccessProfile,
@@ -55,6 +56,27 @@ describe("register/login validation", () => {
     const metadata = signupUserMetadata("Owner Name");
     assert.deepEqual(metadata, { name: "Owner Name" });
     assert.equal("role" in metadata, false);
+  });
+});
+
+describe("profile identity validation", () => {
+  it("accepts a valid display name and rejects blank or oversized names", () => {
+    assert.equal(validateDisplayName("  Nibrexo Member  ").ok, true);
+    assert.equal(validateDisplayName("   ").ok, false);
+    assert.equal(validateDisplayName("x".repeat(81)).ok, false);
+  });
+
+  it("accepts only the predefined avatar IDs", async () => {
+    const { isAvatarId } = await import("./avatars.ts");
+    assert.equal(isAvatarId("av-01"), true);
+    assert.equal(isAvatarId("av-10"), true);
+    assert.equal(isAvatarId("av-99"), false);
+    assert.equal(isAvatarId("https://example.com/avatar.png"), false);
+  });
+
+  it("does not expose role as profile-edit input", () => {
+    const profileInput = { display_name: "Member", avatar_id: "av-01" };
+    assert.equal("role" in profileInput, false);
   });
 });
 
