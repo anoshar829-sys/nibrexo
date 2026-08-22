@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
+import { signIn } from "@/app/account/actions";
 import { routes } from "@/lib/site";
 
-type LoginStatus = "idle" | "error" | "not_configured";
-
-const NOT_CONFIGURED_MESSAGE = "Authentication is not configured yet. No sign-in occurred.";
+type LoginStatus = "idle" | "error" | "loading";
 
 export function LoginForm() {
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -16,7 +15,7 @@ export function LoginForm() {
   const [emailInvalid, setEmailInvalid] = useState(false);
   const [passwordInvalid, setPasswordInvalid] = useState(false);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const emailInput = form.elements.namedItem("email");
@@ -46,8 +45,15 @@ export function LoginForm() {
 
     setEmailInvalid(false);
     setPasswordInvalid(false);
-    setStatus("not_configured");
-    setStatusText(NOT_CONFIGURED_MESSAGE);
+    setStatus("loading");
+    setStatusText("Signing in…");
+
+    const result = await signIn(new FormData(form));
+
+    if (result && !result.ok) {
+      setStatus("error");
+      setStatusText(result.error);
+    }
   };
 
   const clearFieldError = () => {
@@ -70,7 +76,12 @@ export function LoginForm() {
   };
 
   return (
-    <form className="account-form" id="login-form" noValidate onSubmit={onSubmit}>
+    <form
+      className={status === "loading" ? "account-form is-loading" : "account-form"}
+      id="login-form"
+      noValidate
+      onSubmit={onSubmit}
+    >
       <div className="form-field">
         <label htmlFor="login-email">Email address</label>
         <input
@@ -119,11 +130,11 @@ export function LoginForm() {
           Forgot password?
         </Link>
       </div>
-      <button className="button button--primary" type="submit">
-        Log In
+      <button className="button button--primary" type="submit" disabled={status === "loading"}>
+        {status === "loading" ? "Signing in…" : "Log In"}
       </button>
       <p
-        className={status === "idle" ? "form-status" : `form-status is-visible is-${status}`}
+        className={status === "idle" ? "form-status" : `form-status is-visible is-${status === "loading" ? "loading" : "error"}`}
         data-form-status=""
         id="login-status"
         aria-live="polite"

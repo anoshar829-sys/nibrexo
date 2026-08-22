@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/account/LoginForm";
+import { getCurrentUser } from "@/lib/auth/session";
 import { routes } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -23,7 +25,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const user = await getCurrentUser();
+  if (user) {
+    redirect(routes.account);
+  }
+
   return (
     <main className="auth-page" id="main-content">
       <div className="account-container">

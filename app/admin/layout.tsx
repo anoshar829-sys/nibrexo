@@ -2,7 +2,7 @@ import { AccountAuthFooter } from "@/components/account/AccountAuthFooter";
 import { AccountPublicHeader } from "@/components/account/AccountPublicHeader";
 import "@/css/account.css";
 
-export default function AccountLayout({
+export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -10,7 +10,7 @@ export default function AccountLayout({
   return (
     <>
       <a className="skip-link" href="#main-content">
-        Skip to account
+        Skip to admin
       </a>
       <AccountPublicHeader />
       {children}

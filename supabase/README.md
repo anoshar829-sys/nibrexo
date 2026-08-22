@@ -1,9 +1,21 @@
 # Supabase
 
-Phase 1 only establishes the connection foundation.
+Browser and server clients live in `lib/supabase/`.
 
-- Browser and server clients live in `lib/supabase/`.
-- Credentials come from `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-- Application tables, RLS policies, auth flows, and Storage are not created in this phase.
+Public environment variables only:
 
-`migrations/` is reserved for later schema work.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
+
+Do not put a service-role key in public env or browser code.
+
+## Required before the first real signup
+
+Apply `migrations/20260822_profiles_owner_bootstrap.sql` in the Supabase SQL editor.
+
+That migration:
+
+- creates `public.profiles`
+- assigns `owner` only to the first verified account
+- uses an advisory lock and a unique owner index against race conditions
+- blocks clients from inserting or updating roles

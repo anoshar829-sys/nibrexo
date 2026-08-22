@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AccountIcon, CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
+import { AccountMenu } from "@/components/account/AccountMenu";
+import { CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
 import { isNavActive } from "@/lib/nav";
 import { routes } from "@/lib/site";
 
@@ -16,7 +17,13 @@ const NAV = [
   { href: routes.legal, label: "Legal" },
 ] as const;
 
-export function BusinessHeader() {
+export function BusinessHeader({
+  accountHref = routes.login,
+  signedIn = false,
+}: {
+  accountHref?: string;
+  signedIn?: boolean;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -60,9 +67,7 @@ export function BusinessHeader() {
           })}
         </nav>
         <div className="business-actions">
-          <Link className="cart-link" href={routes.login} aria-label="Account">
-            <AccountIcon />
-          </Link>
+          <AccountMenu signedIn={signedIn} loggedOutClassName="cart-link" />
           <Link className="cart-link" href={routes.cart} aria-label="Cart">
             <CartIcon />
           </Link>
@@ -96,7 +101,7 @@ export function BusinessHeader() {
           <Link href={routes.legal} aria-current={isNavActive(pathname, routes.legal) ? "page" : undefined} onClick={closeMenu}>
             Legal <span>05</span>
           </Link>
-          <Link href={routes.login} aria-current={isNavActive(pathname, routes.login) ? "page" : undefined} onClick={closeMenu}>
+          <Link href={accountHref} aria-current={isNavActive(pathname, routes.account) || isNavActive(pathname, routes.login) ? "page" : undefined} onClick={closeMenu}>
             Account <span>06</span>
           </Link>
           <Link href={routes.cart} aria-current={isNavActive(pathname, routes.cart) ? "page" : undefined} onClick={closeMenu}>

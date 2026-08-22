@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 import { buildContentSecurityPolicy, createCspNonce } from "@/lib/security/csp";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = createCspNonce();
   const contentSecurityPolicy = buildContentSecurityPolicy(nonce);
 
@@ -9,12 +10,7 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
 
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
-
+  const response = await updateSession(request, requestHeaders);
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
 
   return response;

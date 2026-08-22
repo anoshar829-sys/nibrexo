@@ -1,5 +1,4 @@
 import { APPLICATION_NAME, getSupabasePublicEnv } from "@/lib/env";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,19 +15,6 @@ export async function GET() {
   const { url, anonKey, configured } = getSupabasePublicEnv();
 
   if (!configured) {
-    return json(
-      {
-        ok: false,
-        application: APPLICATION_NAME,
-        database: "unconfigured",
-      },
-      503,
-    );
-  }
-
-  const supabase = createServerSupabaseClient();
-
-  if (!supabase) {
     return json(
       {
         ok: false,

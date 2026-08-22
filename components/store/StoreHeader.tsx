@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { AccountIcon, CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
+import { AccountMenu } from "@/components/account/AccountMenu";
+import { CartIcon, CloseIcon, MenuIcon } from "@/components/ui/Icons";
 import { isNavActive } from "@/lib/nav";
 import { routes } from "@/lib/site";
 
@@ -16,7 +17,13 @@ const NAV = [
   { href: routes.legal, label: "Legal" },
 ] as const;
 
-export function StoreHeader() {
+export function StoreHeader({
+  accountHref = routes.login,
+  signedIn = false,
+}: {
+  accountHref?: string;
+  signedIn?: boolean;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const cartActive = pathname === routes.cart;
@@ -61,9 +68,7 @@ export function StoreHeader() {
           })}
         </nav>
         <div className="store-utility">
-          <Link className="store-icon-button" href={routes.login} aria-label="Account">
-            <AccountIcon />
-          </Link>
+          <AccountMenu signedIn={signedIn} loggedOutClassName="store-icon-button" />
           <Link
             className="store-icon-button"
             href={routes.cart}

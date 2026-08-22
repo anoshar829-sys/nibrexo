@@ -4,8 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AccountMenu } from "@/components/account/AccountMenu";
 import {
-  AccountIcon,
   ArrowIcon,
   CartIcon,
   CloseIcon,
@@ -22,7 +22,13 @@ const NAV = [
   { href: routes.legal, label: "Legal" },
 ] as const;
 
-export function Header() {
+export function Header({
+  accountHref = routes.login,
+  signedIn = false,
+}: {
+  accountHref?: string;
+  signedIn?: boolean;
+}) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -91,9 +97,7 @@ export function Header() {
         </nav>
 
         <div className="nav-actions">
-          <Link className="utility-button desktop-utility" href={routes.login} aria-label="Account">
-            <AccountIcon />
-          </Link>
+          <AccountMenu signedIn={signedIn} loggedOutClassName="utility-button desktop-utility" />
           <Link className="utility-button desktop-utility" href={routes.cart} aria-label="Cart">
             <CartIcon />
           </Link>
@@ -132,7 +136,7 @@ export function Header() {
           <Link href={routes.legal} aria-current={isNavActive(pathname, routes.legal) ? "page" : undefined} onClick={closeMenu}>
             Legal <span>05</span>
           </Link>
-          <Link href={routes.login} aria-current={isNavActive(pathname, routes.login) ? "page" : undefined} onClick={closeMenu}>
+          <Link href={accountHref} aria-current={isNavActive(pathname, routes.account) || isNavActive(pathname, routes.login) ? "page" : undefined} onClick={closeMenu}>
             Account <span>06</span>
           </Link>
           <Link href={routes.cart} aria-current={isNavActive(pathname, routes.cart) ? "page" : undefined} onClick={closeMenu}>

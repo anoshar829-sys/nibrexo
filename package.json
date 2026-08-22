@@ -12,6 +12,7 @@
     "start": "next start --hostname 0.0.0.0 --port 3000"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.57.4",
     "next": "^15.5.2",
     "react": "^19.1.1",

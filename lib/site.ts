@@ -20,6 +20,8 @@ export const routes = {
   login: "/account/login",
   register: "/account/register",
   forgotPassword: "/account/forgot-password",
+  account: "/account",
+  admin: "/admin",
   contact: "/contact",
 } as const;
 
