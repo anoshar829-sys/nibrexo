@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { publicAuthError } from "@/lib/auth/errors";
+import { signupUserMetadata, validateSignInInput, validateSignUpInput } from "@/lib/auth/validation";
 import { routes } from "@/lib/site";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
@@ -25,12 +26,9 @@ export async function signIn(formData: FormData): Promise<AuthActionResult> {
   const email = readField(formData, "email").trim();
   const password = readField(formData, "password");
 
-  if (!email || !email.includes("@")) {
-    return { ok: false, error: "Enter a valid email address." };
-  }
-
-  if (!password) {
-    return { ok: false, error: "Enter your password." };
+  const input = validateSignInInput(email, password);
+  if (!input.ok) {
+    return { ok: false, error: input.error };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -58,24 +56,9 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
   const confirm = readField(formData, "confirm-password");
   const terms = formData.get("terms");
 
-  if (!name) {
-    return { ok: false, error: "Enter your name." };
-  }
-
-  if (!email || !email.includes("@")) {
-    return { ok: false, error: "Enter a valid email address." };
-  }
-
-  if (!password || password.length < 8) {
-    return { ok: false, error: "Use a password with at least 8 characters." };
-  }
-
-  if (password !== confirm) {
-    return { ok: false, error: "Passwords do not match." };
-  }
-
-  if (terms !== "on" && terms !== "true") {
-    return { ok: false, error: "Accept the Terms & Conditions and Privacy Policy to continue." };
+  const input = validateSignUpInput({ name, email, password, confirm, terms });
+  if (!input.ok) {
+    return { ok: false, error: input.error };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -88,7 +71,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     email,
     password,
     options: {
-      data: { name },
+      data: signupUserMetadata(name),
       emailRedirectTo: origin ? `${origin}/auth/callback` : undefined,
     },
   });

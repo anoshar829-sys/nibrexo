@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 3000",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0 --port 3000"
+    "start": "next start --hostname 0.0.0.0 --port 3000",
+    "test": "node --experimental-strip-types --test lib/auth/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

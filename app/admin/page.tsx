@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { canOpenAdmin } from "@/lib/auth/access";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { isStaffRole } from "@/lib/auth/roles";
 import { routes } from "@/lib/site";
 
 export const metadata = {
@@ -16,7 +16,7 @@ export default async function AdminPage() {
     redirect(routes.login);
   }
 
-  if (!isStaffRole(profile.role)) {
+  if (!canOpenAdmin(profile)) {
     return (
       <main className="auth-page" id="main-content">
         <div className="account-container">

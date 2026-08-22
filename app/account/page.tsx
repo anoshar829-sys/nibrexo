@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/account/actions";
+import { canOpenAccount } from "@/lib/auth/access";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { isStaffRole } from "@/lib/auth/roles";
 import { routes } from "@/lib/site";
@@ -13,7 +14,7 @@ export const metadata = {
 export default async function AccountPage() {
   const profile = await getCurrentProfile();
 
-  if (!profile) {
+  if (!profile || !canOpenAccount(profile)) {
     redirect(routes.login);
   }
 
