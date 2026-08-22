@@ -20,9 +20,11 @@ const NAV = [
 export function BusinessHeader({
   accountHref = routes.login,
   signedIn = false,
+  profile,
 }: {
   accountHref?: string;
   signedIn?: boolean;
+  profile?: { displayName: string; avatarId: Parameters<typeof import("@/lib/auth/avatars").avatarSrc>[0] };
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,7 +69,7 @@ export function BusinessHeader({
           })}
         </nav>
         <div className="business-actions">
-          <AccountMenu signedIn={signedIn} loggedOutClassName="cart-link" />
+          <AccountMenu profile={profile} signedIn={signedIn} loggedOutClassName="cart-link" />
           <Link className="cart-link" href={routes.cart} aria-label="Cart">
             <CartIcon />
           </Link>

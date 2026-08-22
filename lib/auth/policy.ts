@@ -101,3 +101,10 @@ export function publicAuthError(error: { code?: string; message?: string } | nul
   }
   return "Authentication is unavailable. No account change occurred.";
 }
+
+export function validateDisplayName(value: string): FieldValidation {
+  const name = value.trim();
+  if (!name) return { ok: false, error: "Enter a display name." };
+  if (name.length > 80) return { ok: false, error: "Display name must be 80 characters or fewer." };
+  return { ok: true };
+}

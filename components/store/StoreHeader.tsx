@@ -20,9 +20,11 @@ const NAV = [
 export function StoreHeader({
   accountHref = routes.login,
   signedIn = false,
+  profile,
 }: {
   accountHref?: string;
   signedIn?: boolean;
+  profile?: { displayName: string; avatarId: Parameters<typeof import("@/lib/auth/avatars").avatarSrc>[0] };
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,7 +70,7 @@ export function StoreHeader({
           })}
         </nav>
         <div className="store-utility">
-          <AccountMenu signedIn={signedIn} loggedOutClassName="store-icon-button" />
+          <AccountMenu profile={profile} signedIn={signedIn} loggedOutClassName="store-icon-button" />
           <Link
             className="store-icon-button"
             href={routes.cart}

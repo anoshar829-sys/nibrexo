@@ -3,8 +3,10 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { publicAuthError } from "@/lib/auth/errors";
-import { signupUserMetadata, validateSignInInput, validateSignUpInput } from "@/lib/auth/validation";
+import { signupUserMetadata, validateDisplayName, validateSignInInput, validateSignUpInput } from "@/lib/auth/validation";
 import { routes } from "@/lib/site";
+import { getCurrentUser } from "@/lib/auth/session";
+import { isAvatarId } from "@/lib/auth/avatars";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type AuthActionResult =
@@ -89,6 +91,27 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
   }
 
   return { ok: false, error: "Account registration did not complete. No sign-in occurred." };
+}
+
+export async function updateProfile(formData: FormData): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Your session has expired. Sign in again." };
+
+  const displayName = readField(formData, "display_name").trim();
+  const avatarId = readField(formData, "avatar_id");
+  const nameCheck = validateDisplayName(displayName);
+  if (!nameCheck.ok) return nameCheck;
+  if (!isAvatarId(avatarId)) return { ok: false, error: "Choose a valid avatar." };
+
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) return { ok: false, error: "Profile updates are not configured yet." };
+  const { error } = await supabase.from("profiles").update({
+    display_name: displayName,
+    avatar_id: avatarId,
+    updated_at: new Date().toISOString(),
+  }).eq("id", user.id);
+  if (error) return { ok: false, error: "We could not save your profile. Try again." };
+  return { ok: true };
 }
 
 export async function signOut() {

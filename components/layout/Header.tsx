@@ -25,9 +25,11 @@ const NAV = [
 export function Header({
   accountHref = routes.login,
   signedIn = false,
+  profile,
 }: {
   accountHref?: string;
   signedIn?: boolean;
+  profile?: { displayName: string; avatarId: Parameters<typeof import("@/lib/auth/avatars").avatarSrc>[0] };
 }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -97,7 +99,7 @@ export function Header({
         </nav>
 
         <div className="nav-actions">
-          <AccountMenu signedIn={signedIn} loggedOutClassName="utility-button desktop-utility" />
+          <AccountMenu profile={profile} signedIn={signedIn} loggedOutClassName="utility-button desktop-utility" />
           <Link className="utility-button desktop-utility" href={routes.cart} aria-label="Cart">
             <CartIcon />
           </Link>
