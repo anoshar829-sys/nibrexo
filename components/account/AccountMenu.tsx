@@ -85,6 +85,9 @@ export function AccountMenu({ signedIn, loggedOutClassName, profile }: AccountMe
           <Link className="account-menu__item" href={routes.account} role="menuitem" onClick={() => setOpen(false)}>
             Dashboard
           </Link>
+          <Link className="account-menu__item" href={routes.profile} role="menuitem" onClick={() => setOpen(false)}>
+            Profile
+          </Link>
           <form className="account-menu__form" action={signOut}>
             <button className="account-menu__item" type="submit" role="menuitem">
               Log out
