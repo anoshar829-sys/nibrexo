@@ -3,10 +3,16 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { publicAuthError } from "@/lib/auth/errors";
+import {
+  isOwnedProfilePhotoPath,
+  PROFILE_PHOTO_BUCKET,
+  profilePhotoObjectPath,
+  shouldRollbackUploadedPhoto,
+  validateProfilePhotoFile,
+} from "@/lib/auth/profile-photo";
+import { getCurrentUser } from "@/lib/auth/session";
 import { signupUserMetadata, validateDisplayName, validateSignInInput, validateSignUpInput } from "@/lib/auth/validation";
 import { routes } from "@/lib/site";
-import { getCurrentUser } from "@/lib/auth/session";
-import { isAvatarId } from "@/lib/auth/avatars";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export type AuthActionResult =
@@ -98,19 +104,79 @@ export async function updateProfile(formData: FormData): Promise<{ ok: true } | 
   if (!user) return { ok: false, error: "Your session has expired. Sign in again." };
 
   const displayName = readField(formData, "display_name").trim();
-  const avatarId = readField(formData, "avatar_id");
+  const removePhoto = readField(formData, "remove_photo") === "1";
+  const photoEntry = formData.get("photo");
+  const photoFile = photoEntry instanceof File && photoEntry.size > 0 ? photoEntry : null;
+
   const nameCheck = validateDisplayName(displayName);
   if (!nameCheck.ok) return nameCheck;
-  if (!isAvatarId(avatarId)) return { ok: false, error: "Choose a valid avatar." };
 
   const supabase = await createServerSupabaseClient();
   if (!supabase) return { ok: false, error: "Profile updates are not configured yet." };
-  const { error } = await supabase.from("profiles").update({
-    display_name: displayName,
-    avatar_id: avatarId,
-    updated_at: new Date().toISOString(),
-  }).eq("id", user.id);
-  if (error) return { ok: false, error: "We could not save your profile. Try again." };
+
+  const { data: existing, error: existingError } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingError) {
+    return { ok: false, error: "We could not load your profile. Try again." };
+  }
+
+  const previousPath = isOwnedProfilePhotoPath(user.id, existing?.avatar_path) ? existing.avatar_path : null;
+  let nextPath: string | null = previousPath;
+  let uploadedPath: string | null = null;
+  const stalePaths = new Set<string>();
+
+  if (photoFile) {
+    const validated = await validateProfilePhotoFile(photoFile);
+    if (!validated.ok) return validated;
+
+    const objectPath = profilePhotoObjectPath(user.id, validated.ext);
+    const { error: uploadError } = await supabase.storage.from(PROFILE_PHOTO_BUCKET).upload(objectPath, validated.bytes, {
+      contentType: validated.mime,
+      upsert: true,
+      cacheControl: "3600",
+    });
+
+    if (uploadError) {
+      return { ok: false, error: "We could not upload your profile photo. Try again." };
+    }
+
+    uploadedPath = objectPath;
+    nextPath = objectPath;
+
+    if (previousPath && previousPath !== objectPath) {
+      stalePaths.add(previousPath);
+    }
+  } else if (removePhoto) {
+    nextPath = null;
+    if (previousPath) {
+      stalePaths.add(previousPath);
+    }
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      display_name: displayName,
+      avatar_path: nextPath,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    if (shouldRollbackUploadedPhoto(uploadedPath, previousPath)) {
+      await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([uploadedPath]);
+    }
+    return { ok: false, error: "We could not save your profile. Try again." };
+  }
+
+  if (stalePaths.size > 0) {
+    await supabase.storage.from(PROFILE_PHOTO_BUCKET).remove([...stalePaths]);
+  }
+
   return { ok: true };
 }
 

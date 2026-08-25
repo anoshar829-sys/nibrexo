@@ -225,12 +225,39 @@ svg { width: 1.1em; height: 1.1em; fill: none; stroke: currentColor; stroke-widt
 .account-auth-footer .footer-social-link:focus-visible { outline:2px solid var(--primary); outline-offset:3px; }
 .account-auth-footer .footer-social-link svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 .profile-form { margin-top: 28px; }
-.avatar-picker { margin: 24px 0 0; padding: 0; border: 0; }
-.avatar-picker legend { margin-bottom: 10px; }
-.avatar-picker__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-.avatar-option { display: grid; place-items: center; padding: 5px; border: 2px solid transparent; border-radius: 50%; cursor: pointer; }
-.avatar-option:has(input:checked) { border-color: var(--primary); background: #eff6ff; }
-.avatar-option input { position: absolute; opacity: 0; }
-.avatar-option img { width: 100%; max-width: 64px; height: auto; border-radius: 50%; }
+.profile-photo { margin: 24px 0 0; padding: 0; border: 0; }
+.profile-photo legend { margin-bottom: 12px; font-weight: 700; }
+.profile-photo__row { display: flex; gap: 18px; align-items: flex-start; }
+.profile-photo__preview {
+  display: grid;
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--soft);
+}
+.profile-photo__preview img { width: 96px; height: 96px; object-fit: cover; border-radius: 50%; }
+.profile-photo__fallback { display: grid; place-items: center; color: var(--deep); opacity: .72; }
+.profile-photo__fallback svg { width: 36px; height: 36px; }
+.profile-photo__controls { display: grid; gap: 10px; min-width: 0; flex: 1; }
+.profile-photo__hint { margin: 0; color: var(--muted, #5b6472); font-size: .88rem; }
+.profile-photo__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.profile-photo__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.profile-photo__upload { cursor: pointer; }
+.profile-photo__file { margin: 0; color: var(--muted, #5b6472); font-size: .82rem; }
 .profile-form > .button { width: 100%; margin-top: 24px; }
-@media (max-width: 420px) { .account-menu__name { display: none; } .avatar-picker__grid { gap: 5px; } }
+@media (max-width: 520px) {
+  .profile-photo__row { flex-direction: column; align-items: center; text-align: center; }
+  .profile-photo__actions { justify-content: center; }
+}
+@media (max-width: 420px) { .account-menu__name { display: none; } }

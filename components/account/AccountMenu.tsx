@@ -1,19 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { signOut } from "@/app/account/actions";
 import { AccountIcon, ChevronDownIcon } from "@/components/ui/Icons";
-import { avatarSrc } from "@/lib/auth/avatars";
+import type { PublicProfileIdentity } from "@/lib/auth/profile";
 import { routes } from "@/lib/site";
 import "@/styles/account-menu.css";
 
 type AccountMenuProps = {
   signedIn: boolean;
   loggedOutClassName: string;
-  profile?: { displayName: string; avatarId: Parameters<typeof avatarSrc>[0] };
+  profile?: PublicProfileIdentity;
 };
 
 export function AccountMenu({ signedIn, loggedOutClassName, profile }: AccountMenuProps) {
@@ -73,8 +72,13 @@ export function AccountMenu({ signedIn, loggedOutClassName, profile }: AccountMe
         <span className="account-menu__identity">
           {profile ? <span className="account-menu__name">{profile.displayName}</span> : null}
           <span className="account-menu__avatar">
-          {profile ? <Image src={avatarSrc(profile.avatarId)} alt="" width={28} height={28} /> : <AccountIcon />}
-        </span>
+            {profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" width={28} height={28} />
+            ) : (
+              <AccountIcon />
+            )}
+          </span>
         </span>
         <span className="account-menu__chevron">
           <ChevronDownIcon />
@@ -84,6 +88,9 @@ export function AccountMenu({ signedIn, loggedOutClassName, profile }: AccountMe
         <div className="account-menu__panel" id={menuId} role="menu" aria-label="Account">
           <Link className="account-menu__item" href={routes.account} role="menuitem" onClick={() => setOpen(false)}>
             Dashboard
+          </Link>
+          <Link className="account-menu__item" href={routes.profile} role="menuitem" onClick={() => setOpen(false)}>
+            Profile
           </Link>
           <form className="account-menu__form" action={signOut}>
             <button className="account-menu__item" type="submit" role="menuitem">
