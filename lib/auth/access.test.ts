@@ -66,16 +66,92 @@ describe("profile identity validation", () => {
     assert.equal(validateDisplayName("x".repeat(81)).ok, false);
   });
 
-  it("accepts only the predefined avatar IDs", async () => {
-    const { isAvatarId } = await import("./avatars.ts");
-    assert.equal(isAvatarId("av-01"), true);
-    assert.equal(isAvatarId("av-10"), true);
-    assert.equal(isAvatarId("av-99"), false);
-    assert.equal(isAvatarId("https://example.com/avatar.png"), false);
+  it("accepts jpeg/png/webp bytes and rejects other payloads", async () => {
+    const {
+      detectProfilePhotoKind,
+      isOwnedProfilePhotoPath,
+      profilePhotoObjectPath,
+      profilePhotoPublicUrl,
+      PROFILE_PHOTO_MAX_BYTES,
+    } = await import("./profile-photo.ts");
+
+    const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01]);
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00]);
+    const webp = Uint8Array.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]);
+    const gif = Uint8Array.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
+    assert.equal(detectProfilePhotoKind(jpeg), "jpeg");
+    assert.equal(detectProfilePhotoKind(png), "png");
+    assert.equal(detectProfilePhotoKind(webp), "webp");
+    assert.equal(detectProfilePhotoKind(gif), null);
+    assert.equal(detectProfilePhotoKind(new Uint8Array([1, 2, 3])), null);
+
+    assert.equal(profilePhotoObjectPath("user-123", "jpg"), "user-123/profile.jpg");
+    assert.equal(isOwnedProfilePhotoPath("user-123", "user-123/profile.jpg"), true);
+    assert.equal(isOwnedProfilePhotoPath("user-123", "other-user/profile.jpg"), false);
+    assert.equal(isOwnedProfilePhotoPath("user-123", "../user-123/profile.jpg"), false);
+    assert.equal(
+      profilePhotoPublicUrl("https://example.supabase.co", "user-123/profile.jpg"),
+      "https://example.supabase.co/storage/v1/object/public/profile-photos/user-123/profile.jpg",
+    );
+    assert.equal(profilePhotoPublicUrl("", "user-123/profile.jpg"), null);
+    assert.equal(PROFILE_PHOTO_MAX_BYTES, 5 * 1024 * 1024);
+  });
+
+  it("does not roll back same-path uploads after a failed profile save", async () => {
+    const { shouldRollbackUploadedPhoto } = await import("./profile-photo.ts");
+
+    // Same-extension replace: object already overwrote previousPath; do not delete it.
+    assert.equal(
+      shouldRollbackUploadedPhoto("user-123/profile.jpg", "user-123/profile.jpg"),
+      false,
+    );
+    // New upload or different-extension replace: safe to remove the orphan object.
+    assert.equal(shouldRollbackUploadedPhoto("user-123/profile.png", "user-123/profile.jpg"), true);
+    assert.equal(shouldRollbackUploadedPhoto("user-123/profile.jpg", null), true);
+    assert.equal(shouldRollbackUploadedPhoto(null, "user-123/profile.jpg"), false);
+    assert.equal(shouldRollbackUploadedPhoto(null, null), false);
+  });
+
+  it("treats only a returned profile row as a successful update", async () => {
+    const {
+      isProfileRowPersisted,
+      profilePhotoObjectPath,
+      isOwnedProfilePhotoPath,
+      profilePhotoPublicUrl,
+    } = await import("./profile-photo.ts");
+
+    // Zero-row / empty responses must not be treated as success (Supabase update pitfall).
+    assert.equal(isProfileRowPersisted({ error: null, data: null }), false);
+    assert.equal(isProfileRowPersisted({ error: null, data: [] }), false);
+    assert.equal(isProfileRowPersisted({ error: null, data: null, count: 0 }), false);
+    assert.equal(isProfileRowPersisted({ error: { message: "fail" }, data: { id: "u1" } }), false);
+    assert.equal(
+      isProfileRowPersisted({
+        error: null,
+        data: { display_name: "Member", avatar_path: "user-123/profile.jpg" },
+      }),
+      true,
+    );
+    assert.equal(isProfileRowPersisted({ error: null, data: null, count: 1 }), true);
+
+    // Upload path generator must pass ownership validation used by getCurrentProfile.
+    const userId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    const path = profilePhotoObjectPath(userId, "jpg");
+    assert.equal(path, `${userId}/profile.jpg`);
+    assert.equal(isOwnedProfilePhotoPath(userId, path), true);
+    assert.equal(isOwnedProfilePhotoPath(userId, `profile-photos/${path}`), false);
+    assert.equal(isOwnedProfilePhotoPath(userId, `https://cdn.example/${path}`), false);
+
+    const publicUrl = profilePhotoPublicUrl("https://example.supabase.co", path);
+    assert.equal(
+      publicUrl,
+      `https://example.supabase.co/storage/v1/object/public/profile-photos/${path}`,
+    );
   });
 
   it("does not expose role as profile-edit input", () => {
-    const profileInput = { display_name: "Member", avatar_id: "av-01" };
+    const profileInput = { display_name: "Member", avatar_path: "user-1/profile.jpg", remove_photo: "0" };
     assert.equal("role" in profileInput, false);
   });
 });

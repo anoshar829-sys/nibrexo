@@ -24,7 +24,7 @@ export function BusinessHeader({
 }: {
   accountHref?: string;
   signedIn?: boolean;
-  profile?: { displayName: string; avatarId: Parameters<typeof import("@/lib/auth/avatars").avatarSrc>[0] };
+  profile?: { displayName: string; avatarUrl: string | null };
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
