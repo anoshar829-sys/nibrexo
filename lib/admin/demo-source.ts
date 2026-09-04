@@ -15,7 +15,8 @@ import type {
   AdminRecentOrder,
   AdminTopProduct,
   RevenuePoint,
-} from "./overview";
+} from "./overview.ts";
+import { addUtcDays, hashSeed, isoDay, mulberry32, startOfUtcDay } from "./deterministic.ts";
 
 const DEMO_CURRENCY = "USD";
 
@@ -58,40 +59,6 @@ const RANGE_SPAN_DAYS: Record<AdminOverviewRange, number> = {
   "90d": 91,
   "12m": 365,
 };
-
-function hashSeed(input: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-/** Small deterministic PRNG (mulberry32). */
-function mulberry32(seed: number): () => number {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function startOfUtcDay(now: Date): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-}
-
-function addUtcDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
-}
-
-function isoDay(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 function dayLabel(date: Date): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(date);

@@ -7,7 +7,7 @@
 // Supabase queries and assign it to `activeSource` below — no UI change
 // should be required.
 
-import { demoAdminOverviewSource } from "./demo-source";
+import { demoAdminOverviewSource } from "./demo-source.ts";
 
 export {
   ADMIN_OVERVIEW_RANGES,
@@ -15,9 +15,9 @@ export {
   DEFAULT_ADMIN_OVERVIEW_RANGE,
   parseAdminOverviewRange,
   type AdminOverviewRange,
-} from "./ranges";
+} from "./ranges.ts";
 
-import type { AdminOverviewRange } from "./ranges";
+import type { AdminOverviewRange } from "./ranges.ts";
 
 /** "demo" is clearly labelled sample data; "live" means real persisted data. */
 export type AdminOverviewDataSourceId = "demo" | "live";

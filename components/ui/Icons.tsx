@@ -79,3 +79,13 @@ export function ChevronUpIcon() {
     </svg>
   );
 }
+
+export function PackageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M21 8.5 12 4 3 8.5v7L12 20l9-4.5v-7Z" />
+      <path d="m3 8.5 9 4.5 9-4.5" />
+      <path d="M12 13v7" />
+    </svg>
+  );
+}

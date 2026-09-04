@@ -23,6 +23,7 @@ export const routes = {
   account: "/account",
   profile: "/account/profile",
   admin: "/admin",
+  adminProducts: "/admin/products",
   contact: "/contact",
 } as const;
 
