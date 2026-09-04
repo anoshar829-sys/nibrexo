@@ -18,7 +18,7 @@ export const ADMIN_NAVIGATION: AdminNavSection[] = [
     title: "Management",
     items: [
       { label: "Overview", href: routes.admin, status: "ready" },
-      { label: "Products", status: "planned" },
+      { label: "Products", href: routes.adminProducts, status: "ready" },
       { label: "Orders", status: "planned" },
       { label: "Customers", status: "planned" },
       { label: "Licenses", status: "planned" },

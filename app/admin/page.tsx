@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AdminAccessDenied } from "@/components/admin/AdminAccessDenied";
-import { DemoDataNotice } from "@/components/admin/overview/DemoDataNotice";
+import { DemoDataNotice } from "@/components/admin/DemoDataNotice";
 import { OverviewHeader } from "@/components/admin/overview/OverviewHeader";
 import { OverviewKpis } from "@/components/admin/overview/OverviewKpis";
 import { RecentOrdersCard } from "@/components/admin/overview/RecentOrdersCard";

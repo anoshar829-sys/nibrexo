@@ -1,6 +1,7 @@
-import { PlannedAdminLink } from "@/components/admin/PlannedAdminLink";
+import Link from "next/link";
 import { formatCount, formatMoney } from "@/lib/admin/format";
 import { ADMIN_OVERVIEW_RANGE_META, type AdminOverviewRange, type AdminTopProduct } from "@/lib/admin/overview";
+import { routes } from "@/lib/site";
 
 export function TopProductsCard({
   products,
@@ -21,7 +22,9 @@ export function TopProductsCard({
           <h2 id="products-overview-title">Top Products</h2>
           <p>Ranked by revenue · {meta.label.toLowerCase()}</p>
         </div>
-        <PlannedAdminLink label="View all products" hint="The Products management page is not built yet." />
+        <Link className="button--text" href={routes.adminProducts}>
+          View all products →
+        </Link>
       </div>
 
       {hasProducts ? (

@@ -352,3 +352,39 @@ svg { width:1.1em; height:1.1em; fill:none; stroke:currentColor; stroke-width:1.
 @media (max-width:560px) {
   .admin-topbar__state { display:none; }
 }
+
+/* ===== Next.js admin app — Products extensions (same tokens, scoped additions only) ===== */
+.admin-status--published { color:var(--success); background:rgba(21,128,61,.09); }
+.admin-status--draft { color:#b45309; background:rgba(180,83,9,.08); }
+.admin-status--archived { color:var(--muted); background:rgba(31,41,55,.06); }
+.admin-products-list .admin-toolbar { margin-top:0; }
+.admin-filter-pills { display:flex; flex-wrap:wrap; gap:8px; }
+.admin-filter-pill { display:inline-flex; min-height:38px; align-items:center; gap:7px; padding:0 14px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:var(--white); font-size:.78rem; font-weight:700; transition:color 160ms ease-out,border-color 160ms ease-out,background 160ms ease-out; }
+.admin-filter-pill:hover { border-color:rgba(37,99,235,.45); color:var(--deep); }
+.admin-filter-pill[aria-pressed="true"] { border-color:var(--primary); color:var(--deep); background:#eff6ff; }
+.admin-filter-pill__count { padding:1px 7px; border-radius:999px; color:var(--muted); background:rgba(31,41,55,.07); font-size:.68rem; font-weight:760; }
+.admin-filter-pill[aria-pressed="true"] .admin-filter-pill__count { color:var(--deep); background:rgba(37,99,235,.14); }
+.admin-results-count { margin:16px 0 0; color:var(--muted); font-size:.76rem; }
+.admin-table__strong { color:var(--graphite); font-weight:720; }
+.admin-table__sub { display:block; margin-top:2px; color:var(--muted); font-size:.7rem; }
+.admin-table__sort { display:inline-flex; align-items:center; gap:5px; padding:0; color:inherit; background:transparent; font:inherit; letter-spacing:inherit; text-transform:inherit; }
+.admin-table__sort:hover { color:var(--deep); }
+.admin-table__sort-arrow { color:var(--muted); font-size:.9em; opacity:.55; }
+.admin-table__sort-arrow.is-active { color:var(--deep); opacity:1; }
+.admin-table__actions { display:flex; flex-wrap:wrap; gap:12px; }
+.admin-table .button--text:disabled { color:var(--muted); cursor:not-allowed; opacity:.6; text-decoration:none; }
+.admin-header-hint { align-self:center; max-width:270px; margin:0; color:var(--muted); font-size:.72rem; line-height:1.5; text-align:left; }
+.admin-empty--compact { min-height:200px; margin-top:19px; }
+.button .admin-planned-action__tag { color:inherit; border-color:currentColor; opacity:.75; }
+
+/* Products skeleton modifiers */
+.admin-skeleton--button { height:44px; width:170px; border-radius:var(--radius-md); }
+.admin-skeleton--search { height:44px; flex:1 1 280px; min-width:220px; border-radius:var(--radius-sm); }
+.admin-skeleton--pills { height:38px; width:min(430px,100%); border-radius:999px; }
+.admin-skeleton--count { height:12px; width:220px; margin-top:16px; }
+.admin-skeleton--row-lg { height:52px; }
+.admin-skeleton-stack--table { gap:9px; margin-top:19px; }
+@media (max-width:760px) {
+  .admin-header-hint { max-width:none; }
+  .admin-skeleton--pills { width:100%; }
+}
